@@ -164,7 +164,9 @@ def main(args):
     # 모델 저장
     if args.save_path:
         print(f"\n모델 저장 중: {args.save_path}")
-        os.makedirs(os.path.dirname(args.save_path), exist_ok=True)
+        save_dir = os.path.dirname(args.save_path)
+        if save_dir:  # Only create directory if path includes a directory
+            os.makedirs(save_dir, exist_ok=True)
         model.save_weights(args.save_path)
     
     print("\n학습 완료!")

@@ -122,6 +122,15 @@ def main(args):
     elif args.image_dir:
         print(f"\n디렉토리 예측: {args.image_dir}")
         
+        # 디렉토리 존재 확인
+        if not os.path.exists(args.image_dir):
+            print(f"오류: 디렉토리를 찾을 수 없습니다: {args.image_dir}")
+            return
+        
+        if not os.path.isdir(args.image_dir):
+            print(f"오류: {args.image_dir}는 디렉토리가 아닙니다.")
+            return
+        
         # 이미지 파일 수집
         image_paths = [
             os.path.join(args.image_dir, f)
