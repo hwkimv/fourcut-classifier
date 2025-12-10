@@ -44,8 +44,8 @@ class ImagePreprocessor:
         Returns:
             PIL.Image: 리사이즈된 이미지
         """
-        # Pillow 10.0.0+ uses Image.Resampling.LANCZOS
-        # Older versions use Image.LANCZOS
+        # Pillow 10.0.0 introduced Image.Resampling enum
+        # Fall back to Image.LANCZOS for older versions
         if hasattr(Image, 'Resampling'):
             resample = Image.Resampling.LANCZOS
         else:

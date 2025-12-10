@@ -41,7 +41,7 @@ fourcut-classifier/
 ### 1. 저장소 클론
 
 ```bash
-git clone https://github.com/hwkimv/fourcut-classifier.git
+git clone https://github.com/<your-username>/fourcut-classifier.git
 cd fourcut-classifier
 ```
 
