@@ -1,6 +1,9 @@
 """
 단층 퍼셉트론(Single Layer Perceptron) 모델
 numpy 기반으로 구현된 간단한 SLP 분류기입니다.
+- 시그모이드 활성화
+- MSE 손실
+- 경사하강법(가중치/편향 업데이트)
 """
 
 import numpy as np
@@ -75,22 +78,9 @@ class SingleLayerPerceptron:
         return (proba >= threshold).astype(int)
     
     def compute_loss(self, y_true, y_pred_proba):
-        """
-        Binary Cross-Entropy 손실 계산
-        
-        Args:
-            y_true (numpy.ndarray): 실제 레이블
-            y_pred_proba (numpy.ndarray): 예측 확률
-            
-        Returns:
-            float: 손실 값
-        """
-        epsilon = 1e-15  # log(0) 방지
-        y_pred_proba = np.clip(y_pred_proba, epsilon, 1 - epsilon)
-        loss = -np.mean(y_true * np.log(y_pred_proba) + 
-                       (1 - y_true) * np.log(1 - y_pred_proba))
-        return loss
-    
+        """MSE 손실 계산"""
+        return float(np.mean((y_true - y_pred_proba) ** 2))
+
     def compute_accuracy(self, y_true, y_pred):
         """
         정확도 계산
@@ -122,14 +112,14 @@ class SingleLayerPerceptron:
             # 손실 계산
             loss = self.compute_loss(y, y_pred_proba)
             self.loss_history.append(loss)
-            
+
             # 정확도 계산
             y_pred = (y_pred_proba >= 0.5).astype(int)
             accuracy = self.compute_accuracy(y, y_pred)
             self.accuracy_history.append(accuracy)
             
-            # Gradient 계산
-            error = y_pred_proba - y
+            # Gradient 계산 (MSE 기준): (y_hat - y) * sigma'(z)
+            error = (y_pred_proba - y) * y_pred_proba * (1 - y_pred_proba)
             dw = np.dot(X.T, error) / n_samples
             db = np.mean(error)
             
@@ -163,25 +153,3 @@ class SingleLayerPerceptron:
             'loss': loss,
             'accuracy': accuracy
         }
-    
-    def save_weights(self, filepath):
-        """
-        모델 가중치 저장
-        
-        Args:
-            filepath (str): 저장 경로
-        """
-        np.savez(filepath, weights=self.weights, bias=self.bias)
-        print(f"모델 가중치가 {filepath}에 저장되었습니다.")
-    
-    def load_weights(self, filepath):
-        """
-        모델 가중치 로드
-        
-        Args:
-            filepath (str): 로드 경로
-        """
-        data = np.load(filepath)
-        self.weights = data['weights']
-        self.bias = data['bias']
-        print(f"모델 가중치가 {filepath}에서 로드되었습니다.")
