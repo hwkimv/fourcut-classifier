@@ -17,6 +17,9 @@ class SingleLayerPerceptron:
         random_state (int): 난수 시드
     """
     
+    # 시그모이드 함수 오버플로우 방지를 위한 클리핑 범위
+    SIGMOID_CLIP_RANGE = 500
+    
     def __init__(self, input_size, learning_rate=0.01, epochs=100, random_state=42):
         self.input_size = input_size
         self.learning_rate = learning_rate
@@ -42,7 +45,7 @@ class SingleLayerPerceptron:
         Returns:
             numpy.ndarray: 활성화된 값 (0-1 사이)
         """
-        return 1 / (1 + np.exp(-np.clip(z, -500, 500)))
+        return 1 / (1 + np.exp(-np.clip(z, -self.SIGMOID_CLIP_RANGE, self.SIGMOID_CLIP_RANGE)))
     
     def predict_proba(self, X):
         """

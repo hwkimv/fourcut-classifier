@@ -44,10 +44,11 @@ class ImagePreprocessor:
         Returns:
             PIL.Image: 리사이즈된 이미지
         """
-        # Use Image.LANCZOS for compatibility with Pillow >= 9.0.0
-        try:
+        # Pillow 10.0.0+ uses Image.Resampling.LANCZOS
+        # Older versions use Image.LANCZOS
+        if hasattr(Image, 'Resampling'):
             resample = Image.Resampling.LANCZOS
-        except AttributeError:
+        else:
             resample = Image.LANCZOS
         return image.resize(self.target_size, resample)
     
