@@ -62,7 +62,7 @@ def load_dataset(data_dir, preprocessor):
                 print(f"이미지 로드 실패: {img_path} - {e}")
     
     if len(X) == 0:
-        raise ValueError("데이터를 찾을 수 없습니다. data/raw/fourcut 및 data/raw/non_fourcut 폴더에 이미지를 추가해주세요.")
+        raise ValueError(f"데이터를 찾을 수 없습니다. {fourcut_dir} 및 {non_fourcut_dir} 폴더에 이미지를 추가해주세요.")
     
     return np.array(X), np.array(y)
 

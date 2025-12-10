@@ -44,7 +44,12 @@ class ImagePreprocessor:
         Returns:
             PIL.Image: 리사이즈된 이미지
         """
-        return image.resize(self.target_size, Image.Resampling.LANCZOS)
+        # Use Image.LANCZOS for compatibility with Pillow >= 9.0.0
+        try:
+            resample = Image.Resampling.LANCZOS
+        except AttributeError:
+            resample = Image.LANCZOS
+        return image.resize(self.target_size, resample)
     
     def to_grayscale(self, image):
         """
