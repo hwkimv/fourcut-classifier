@@ -28,16 +28,15 @@ def main():
 
     # 전처리기
     pre = ImagePreprocessor(target_size=(args.image_size, args.image_size), grayscale=True, normalize=True)
-    x = pre.preprocess(args.image_path).reshape(1, -1)
+    x = pre.preprocess(args.image_path)
 
-    # 모델 구성 및 가중치 로드
-    input_size = x.shape[1]
-    model = SingleLayerPerceptron(input_size=input_size)
+    # 가중치 로드
     W, b = load_weights_numpy(args.model_dir)
-    model.weights = W
-    model.bias = float(b)
 
-    proba = float(model.predict_proba(x)[0])
+    # 직접 예측 (모델 객체 생성하지 않고)
+    x = x.astype(np.float64)  # dtype 맞추기
+    z = np.sum(x * W) + float(b)
+    proba = float(1.0 / (1.0 + np.exp(-np.clip(z, -500, 500))))
     pred = int(proba >= 0.5)
 
     print(f"이미지: {args.image_path}")

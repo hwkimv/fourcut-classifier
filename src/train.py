@@ -50,18 +50,42 @@ def load_dataset(data_dir, preprocessor):
                 print(f"이미지 로드 실패: {img_path} - {e}")
 
     # 일반 사진 로드 (label=0)
+    # 네컷사진 로드 (label=1)
+    if os.path.exists(fourcut_dir):
+        all_files = os.listdir(fourcut_dir)
+        fourcut_images = [os.path.join(fourcut_dir, f)
+                          for f in all_files
+                          if f.lower().endswith(('.jpg', '.jpeg', '.png')) and not f.startswith('.')]
+        print(f"네컷 이미지 파일 {len(fourcut_images)}개 발견")
+        for idx, img_path in enumerate(fourcut_images, 1):
+            try:
+                vector = preprocessor.preprocess(img_path)
+                X.append(vector)
+                y.append(1)
+                if idx % 500 == 0:
+                    print(f"  네컷 이미지 로드 중... {idx}/{len(fourcut_images)}")
+            except Exception as e:
+                print(f"이미지 로드 실패: {img_path} - {e}")
+        print(f"네컷 이미지 로드 완료: {len([_y for _y in y if _y == 1])}개")
+
+    # 일반 사진 로드 (label=0)
     neg_dirs = [d for d in [normal_dir, non_fourcut_dir] if os.path.exists(d)]
     for neg_dir in neg_dirs:
+        all_files = os.listdir(neg_dir)
         neg_images = [os.path.join(neg_dir, f)
-                      for f in os.listdir(neg_dir)
-                      if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
-        for img_path in neg_images:
+                      for f in all_files
+                      if f.lower().endswith(('.jpg', '.jpeg', '.png')) and not f.startswith('.')]
+        print(f"일반 이미지 파일 {len(neg_images)}개 발견 (from {neg_dir})")
+        for idx, img_path in enumerate(neg_images, 1):
             try:
                 vector = preprocessor.preprocess(img_path)
                 X.append(vector)
                 y.append(0)
+                if idx % 100 == 0:
+                    print(f"  일반 이미지 로드 중... {idx}/{len(neg_images)}")
             except Exception as e:
                 print(f"이미지 로드 실패: {img_path} - {e}")
+        print(f"일반 이미지 로드 완료: 총 {len([_y for _y in y if _y == 0])}개")
 
     if len(X) == 0:
         raise ValueError(
