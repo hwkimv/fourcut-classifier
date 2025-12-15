@@ -1,39 +1,23 @@
-"""
-네컷 포토부스 합성 이미지 생성 스크립트
-
-프레임 PNG의 투명 슬롯(4개)에 일반 사진을 합성하여 네컷 이미지를 생성합니다.
-
-사용 예시:
-    python generate_fourcut.py --source-dir data/raw/normal --frame-path frame.png --output-dir data/train/fourcut --num-images 100
-
-필수 의존성:
-    - Pillow (PIL) >= 9.0.0
-    - numpy
-"""
+# 네컷 사진 자동 생성 프로그램
+# 일반 사진 4장을 골라서 네컷 프레임에 합성해줌
 
 import argparse
 import random
 from pathlib import Path
 from typing import List, Tuple
-
 import numpy as np
 from PIL import Image
 
-# Pillow 버전 호환성을 위한 Resampling 상수
+# Pillow 버전 호환성
 try:
     LANCZOS = Image.Resampling.LANCZOS
 except AttributeError:
-    # 구 버전 Pillow
-    LANCZOS = Image.LANCZOS  # type: ignore
+    LANCZOS = Image.LANCZOS
 
 
-# =============================
-# 슬롯 좌표 하드코딩 (방식 B)
-# =============================
-# (x, y, w, h) 형식의 튜플 4개.
-# photo-booth-frame-transparent_20px.png (900x2700) 프레임 기준으로 자동 탐지된 좌표
-SLOTS_HARDCODED: List[Tuple[int, int, int, int]] = [
-    # (x, y, width, height) - 위에서 아래 순서
+# 네컷 프레임 슬롯 위치 (900x2700 프레임 기준)
+# (x좌표, y좌표, 가로, 세로) 형식
+SLOTS_HARDCODED = [
     (40, 40, 820, 640),       # 1번째 칸
     (40, 700, 820, 640),      # 2번째 칸
     (40, 1360, 820, 640),     # 3번째 칸
@@ -41,20 +25,15 @@ SLOTS_HARDCODED: List[Tuple[int, int, int, int]] = [
 ]
 
 
-def load_images(source_dir: str) -> List[Path]:
+def load_images(source_dir):
     """
-    source_dir에서 사용 가능한 이미지 파일 목록을 불러옵니다.
-
-    Args:
-        source_dir: 일반 사진이 들어 있는 디렉토리
-
-    Returns:
-        이미지 파일 경로 리스트
+    폴더에서 일반 사진들을 불러옴
     """
     source_path = Path(source_dir)
     if not source_path.exists() or not source_path.is_dir():
-        raise FileNotFoundError(f"source_dir가 존재하지 않습니다: {source_dir}")
+        raise FileNotFoundError(f"폴더를 찾을 수 없습니다: {source_dir}")
 
+    # jpg, png 파일만 찾기
     exts = {".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG"}
     image_paths = [
         p for p in source_path.iterdir()
@@ -62,25 +41,20 @@ def load_images(source_dir: str) -> List[Path]:
     ]
 
     if not image_paths:
-        raise ValueError(f"source_dir에 사용할 이미지가 없습니다: {source_dir}")
+        raise ValueError(f"폴더에 이미지가 없습니다: {source_dir}")
 
     return image_paths
 
 
-def load_frames(frame_dir: str) -> List[Path]:
+def load_frames(frame_dir):
     """
-    frame_dir에서 사용 가능한 프레임 PNG 파일 목록을 불러옵니다.
-
-    Args:
-        frame_dir: 프레임 PNG 파일들이 들어 있는 디렉토리
-
-    Returns:
-        프레임 파일 경로 리스트
+    폴더에서 네컷 프레임들을 불러옴
     """
     frame_path = Path(frame_dir)
     if not frame_path.exists() or not frame_path.is_dir():
-        raise FileNotFoundError(f"frame_dir가 존재하지 않습니다: {frame_dir}")
+        raise FileNotFoundError(f"프레임 폴더를 찾을 수 없습니다: {frame_dir}")
 
+    # png 파일만 찾기
     exts = {".png", ".PNG"}
     frame_paths = [
         p for p in frame_path.iterdir()
@@ -88,17 +62,16 @@ def load_frames(frame_dir: str) -> List[Path]:
     ]
 
     if not frame_paths:
-        raise ValueError(f"frame_dir에 사용할 프레임 이미지가 없습니다: {frame_dir}")
+        raise ValueError(f"폴더에 프레임 이미지가 없습니다: {frame_dir}")
 
     return frame_paths
 
 
-def detect_slots(frame: Image.Image) -> List[Tuple[int, int, int, int]]:
+def detect_slots(frame):
     """
-    프레임 PNG의 alpha 채널을 기반으로 투명 슬롯 4개를 자동으로 탐지합니다.
-
-    Args:
-        frame: 네컷 프레임 PNG (RGBA)
+    프레임의 투명한 부분(슬롯)을 자동으로 찾기
+    - 알파 채널(투명도)을 분석해서 4개의 칸을 찾음
+    """
 
     Returns:
         [(x, y, w, h), ...] 형태의 슬롯 리스트 (위→아래 순서)
