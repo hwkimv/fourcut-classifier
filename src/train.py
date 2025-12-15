@@ -165,7 +165,10 @@ def main(args):
     print("=" * 60)
 
     # 데이터 경로
-    data_dir = args.data_dir
+    base_dir = args.data_dir
+    train_dir = os.path.join(base_dir, 'train')
+    val_dir = os.path.join(base_dir, 'val')
+    test_dir = os.path.join(base_dir, 'test')
 
     # 이미지 전처리기 준비
     print(f"\n전처리기 초기화 (이미지 크기: {args.image_size}x{args.image_size})")
@@ -175,49 +178,56 @@ def main(args):
         normalize=True
     )
 
-    # 데이터 불러오기
-    print("\n데이터 로드 중...")
+    # 학습 데이터 불러오기
+    print("\n학습 데이터 로드 중...")
     try:
-        X, y = load_dataset(data_dir, preprocessor)
-        print(f"총 샘플 수: {len(X)}")
-        print(f"네컷사진: {np.sum(y == 1)}개")
-        print(f"일반 사진: {np.sum(y == 0)}개")
-        print(f"특징 차원: {X.shape[1]}")
-
-        # 데이터 불균형 확인
-        n_fourcut = np.sum(y == 1)
-        n_normal = np.sum(y == 0)
-        if n_normal > 0:
-            ratio = n_fourcut / n_normal
-            if ratio > 3 or ratio < 0.33:
-                print(f"\n⚠️  데이터 불균형 감지! 비율: {ratio:.2f}:1")
-                if not args.no_balance:
-                    print(f"   → 자동 밸런싱 활성화 (방법: {args.balance_method})")
-
-    except ValueError as e:
-        print(f"\n오류: {e}")
+        X_train, y_train = load_dataset(train_dir, preprocessor)
+    except Exception as e:
+        print(f"[오류: 학습 데이터를 찾을 수 없습니다. {train_dir}/fourcut 및 {train_dir}/normal 폴더에 이미지를 추가해주세요.]")
+        print(f"상세 오류: {e}")
         return
 
-    # 데이터 균형 맞추기 (옵션)
-    if not args.no_balance:
-        X, y = balance_dataset(X, y, method=args.balance_method, random_state=args.random_state)
+    # 검증 데이터 불러오기
+    print("\n검증 데이터 로드 중...")
+    try:
+        X_val, y_val = load_dataset(val_dir, preprocessor)
+    except Exception as e:
+        print(f"[오류: 검증 데이터를 찾을 수 없습니다. {val_dir}/fourcut 및 {val_dir}/normal 폴더에 이미지를 추가해주세요.]")
+        print(f"상세 오류: {e}")
+        return
 
-    # 데이터 나누기 (학습/검증/테스트)
-    print("\n데이터 분할 중...")
-    X_train, X_val, X_test, y_train, y_val, y_test = split_dataset(
-        X, y,
-        test_ratio=args.test_ratio,
-        val_ratio=args.val_ratio,
-        random_state=args.random_state
-    )
-    print(f"학습 세트: {len(X_train)}개 (일반: {np.sum(y_train==0)}, 네컷: {np.sum(y_train==1)})")
-    print(f"검증 세트: {len(X_val)}개 (일반: {np.sum(y_val==0)}, 네컷: {np.sum(y_val==1)})")
-    print(f"테스트 세트: {len(X_test)}개 (일반: {np.sum(y_test==0)}, 네컷: {np.sum(y_test==1)})")
+    # 테스트 데이터 불러오기
+    print("\n테스트 데이터 로드 중...")
+    try:
+        X_test, y_test = load_dataset(test_dir, preprocessor)
+    except Exception as e:
+        print(f"[오류: 테스트 데이터를 찾을 수 없습니다. {test_dir}/fourcut 및 {test_dir}/normal 폴더에 이미지를 추가해주세요.]")
+        print(f"상세 오류: {e}")
+        return
+
+    # 데이터 정보 출력
+    print(f"\n📊 데이터 요약:")
+    print(f"  학습: {len(X_train)}개 (네컷: {np.sum(y_train==1)}, 일반: {np.sum(y_train==0)})")
+    print(f"  검증: {len(X_val)}개 (네컷: {np.sum(y_val==1)}, 일반: {np.sum(y_val==0)})")
+    print(f"  테스트: {len(X_test)}개 (네컷: {np.sum(y_test==1)}, 일반: {np.sum(y_test==0)})")
+    print(f"  특징 차원: {X_train.shape[1]}")
+
+    # 데이터 균형 맞추기 (학습 데이터만)
+    if not args.no_balance:
+        X_train, y_train = balance_dataset(X_train, y_train, method=args.balance_method, random_state=args.random_state)
+
+    # NumPy 배열로 변환
+    X_train = np.array(X_train, dtype=np.float32)
+    y_train = np.array(y_train, dtype=np.float32)
+    X_val = np.array(X_val, dtype=np.float32)
+    y_val = np.array(y_val, dtype=np.float32)
+    X_test = np.array(X_test, dtype=np.float32)
+    y_test = np.array(y_test, dtype=np.float32)
 
     # AI 모델 준비
     print(f"\n모델 초기화 (학습률: {args.learning_rate}, 에포크: {args.epochs})")
     model = SingleLayerPerceptron(
-        input_size=X.shape[1],
+        input_size=X_train.shape[1],
         learning_rate=args.learning_rate,
         epochs=args.epochs,
         random_state=args.random_state
@@ -377,8 +387,8 @@ if __name__ == "__main__":
     # 명령줄 옵션 설정
     parser = argparse.ArgumentParser(description="네컷사진 판별 모델 학습")
 
-    parser.add_argument("--data-dir", type=str, default="data/train",
-                       help="학습 데이터 폴더 (기본값: data/train)")
+    parser.add_argument("--data-dir", type=str, default="data/split",
+                       help="데이터 폴더 (train/val/test 포함, 기본값: data/split)")
 
     parser.add_argument("--image-size", type=int, default=128,
                        help="이미지 크기 (기본값: 128)")

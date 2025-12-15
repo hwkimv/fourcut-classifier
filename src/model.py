@@ -78,12 +78,13 @@ class SingleLayerPerceptron:
             loss = self.compute_loss(y, y_pred_proba)
             self.loss_history.append(loss)
 
+            # 이진 예측값 계산 및 정확도
             y_pred = (y_pred_proba >= 0.5).astype(int)
             accuracy = self.compute_accuracy(y, y_pred)
             self.accuracy_history.append(accuracy)
 
             # 3단계: 오차 계산 (얼마나 틀렸는지)
-            error = (y_pred_proba - y) * y_pred_proba * (1 - y_pred_proba)
+            error = (y_pred_proba - y) * y_pred_proba * (1 - y_pred_proba) # 시그모이드 미분 포함
             dw = np.dot(X.T, error) / n_samples  # 가중치 변화량
             db = np.mean(error)  # 편향 변화량
 
